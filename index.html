@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>蝦殼分析</title>
+    <link rel="icon" type="image/png" href="assets/Beater_icon.png">
+    <script>
+      try {
+        const savedTheme = localStorage.getItem("shellCaseAnalyzerTheme");
+        document.documentElement.dataset.theme = savedTheme === "light" ? "light" : "dark";
+      } catch (error) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell" id="appShell">
+      <aside class="sidebar" id="sidebar" aria-label="主要功能">
+        <div class="sidebar-brand">
+          <img class="brand-icon" src="assets/Beater_icon.png" alt="">
+          <div class="brand-copy">
+            <span>蝦殼分析</span>
+            <small>Made by SecBeater</small>
+          </div>
+        </div>
+        <nav class="sidebar-nav" aria-label="分析頁面">
+          <button class="nav-item active" type="button" data-view-target="buyers">
+            <span class="nav-icon" aria-hidden="true">▦</span>
+            <span class="nav-label">買家統計</span>
+          </button>
+          <button class="nav-item" type="button" data-view-target="details">
+            <span class="nav-icon" aria-hidden="true">▣</span>
+            <span class="nav-label">詳細資料</span>
+          </button>
+          <button class="nav-item" type="button" data-view-target="clues">
+            <span class="nav-icon" aria-hidden="true">⌁</span>
+            <span class="nav-label">共用電話/姓名線索</span>
+          </button>
+          <button class="nav-item" type="button" data-view-target="exports">
+            <span class="nav-icon" aria-hidden="true">⇩</span>
+            <span class="nav-label">匯出</span>
+          </button>
+        </nav>
+        <div class="sidebar-tools">
+          <button class="nav-item theme-toggle" id="themeToggleBtn" type="button" aria-pressed="true">
+            <span class="nav-icon" id="themeToggleIcon" aria-hidden="true">☾</span>
+            <span class="nav-label" id="themeToggleLabel">深色模式：開</span>
+          </button>
+        </div>
+        <button class="sidebar-collapse" id="sidebarCollapseBtn" type="button" aria-label="縮放側邊欄" aria-expanded="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span class="nav-label">縮放</span>
+        </button>
+      </aside>
+
+      <main class="main-stage">
+        <section class="view-panel active" data-view="buyers" aria-label="買家統計">
+          <div class="upload-zone" id="dropZone" tabindex="0">
+            <input id="fileInput" type="file" accept=".xlsx,.xls" hidden>
+            <button class="primary-btn" id="selectFileBtn" type="button">選擇 Excel 檔</button>
+            <p>匯入蝦皮購物紀錄 Excel 後，系統會依完成訂單彙整買家、金額、商品、電話與姓名。</p>
+            <p class="file-meta" id="fileMeta">尚未載入檔案</p>
+          </div>
+
+          <div class="notice-panel" id="noticePanel" role="status">
+            <strong>待命</strong>
+            <span>載入檔案後會自動產生買家統計、圖表和匯出資料。</span>
+          </div>
+
+          <div class="warning-panel hidden" id="warningPanel">
+            <button id="toggleWarningsBtn" type="button" aria-expanded="false">
+              資料品質提示 <span id="warningCount">0</span>
+            </button>
+            <ul id="warningList" hidden></ul>
+          </div>
+
+          <section class="table-panel" aria-label="買家統計表">
+            <div class="table-head">
+              <div>
+                <p class="eyebrow">Buyer Summary</p>
+                <h2>買家統計</h2>
+              </div>
+              <p id="resultCount">0 筆</p>
+            </div>
+            <div class="table-wrap">
+              <table class="summary-table" id="summaryTable">
+                <colgroup id="summaryColgroup"></colgroup>
+                <thead>
+                  <tr id="summaryHeadRow"></tr>
+                </thead>
+                <tbody id="summaryBody">
+                  <tr>
+                    <td colspan="7" class="empty-cell">尚未載入資料</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" data-view="details" aria-label="詳細資料">
+          <section class="kpi-grid" aria-label="關鍵指標">
+            <article class="kpi-card">
+              <span>買家數</span>
+              <strong id="kpiBuyers">0</strong>
+            </article>
+            <article class="kpi-card">
+              <span>完成訂單數</span>
+              <strong id="kpiOrders">0</strong>
+            </article>
+            <article class="kpi-card">
+              <span>實際撥款總額</span>
+              <strong id="kpiAmount">0</strong>
+            </article>
+            <article class="kpi-card">
+              <span>日期範圍</span>
+              <strong id="kpiDateRange">-</strong>
+            </article>
+            <article class="kpi-card">
+              <span>商品種類</span>
+              <strong id="kpiProducts">0</strong>
+            </article>
+          </section>
+
+          <section class="chart-grid" aria-label="視覺化圖表">
+            <article class="chart-panel">
+              <div class="section-title">
+                <span></span>
+                <h2>買家撥款額 Top 20</h2>
+              </div>
+              <canvas id="amountChart" height="240"></canvas>
+            </article>
+            <article class="chart-panel">
+              <div class="section-title">
+                <span></span>
+                <h2>買家購買次數 Top 20</h2>
+              </div>
+              <canvas id="countChart" height="240"></canvas>
+            </article>
+            <article class="chart-panel">
+              <div class="section-title">
+                <span></span>
+                <h2>商品數量 Top 20</h2>
+              </div>
+              <canvas id="productChart" height="240"></canvas>
+            </article>
+            <article class="chart-panel">
+              <div class="section-title">
+                <span></span>
+                <h2>月份趨勢</h2>
+              </div>
+              <canvas id="monthChart" height="240"></canvas>
+            </article>
+          </section>
+        </section>
+
+        <section class="view-panel" data-view="clues" aria-label="共用電話/姓名線索">
+          <article class="chart-panel wide">
+            <div class="panel-toolbar">
+              <div class="section-title">
+                <span></span>
+                <h1>共用電話/姓名線索</h1>
+              </div>
+              <button id="resetClueBtn" type="button">重設線索</button>
+            </div>
+            <div class="clue-list" id="clueList"></div>
+          </article>
+        </section>
+
+        <section class="view-panel" data-view="exports" aria-label="匯出">
+          <div class="export-panel">
+            <div class="section-title">
+              <span></span>
+              <h1>匯出</h1>
+            </div>
+            <p>匯出目前篩選後的分析結果。Excel 會輸出與參考檔相同欄位順序的「買家統計」工作表。</p>
+            <div class="export-actions">
+              <button id="exportXlsxBtn" type="button" disabled>匯出 Excel</button>
+              <button id="exportCsvBtn" type="button" disabled>匯出統計 CSV</button>
+              <button id="exportDetailsBtn" type="button" disabled>匯出明細 CSV</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <aside class="detail-drawer" id="detailDrawer" aria-label="買家明細" aria-hidden="true">
+      <div class="drawer-head">
+        <div>
+          <p class="eyebrow">Case Detail</p>
+          <h2 id="drawerBuyer">買家明細</h2>
+        </div>
+        <div class="drawer-actions">
+          <button id="exportCaseXlsxBtn" type="button" disabled>匯出 Excel</button>
+          <button id="exportCaseCsvBtn" type="button" disabled>匯出 CSV</button>
+          <button id="closeDrawerBtn" class="drawer-close" type="button" aria-label="關閉明細">×</button>
+        </div>
+      </div>
+      <div id="drawerContent" class="drawer-content"></div>
+    </aside>
+
+    <div class="modal-backdrop" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle" hidden>
+      <div class="privacy-modal">
+        <p class="eyebrow">使用提醒</p>
+        <h2 id="privacyTitle">資料均在本地運行，請安心使用。</h2>
+        <div class="welcome-copy">
+          <p>
+            有任何需求可以私訊
+            <a href="https://t.me/secbeater" target="_blank" rel="noopener noreferrer">SecBeater</a>。
+          </p>
+          <p>
+            歡迎加入
+            <a href="https://t.me/tgsecbeater" target="_blank" rel="noopener noreferrer">Telegram 群組</a>，
+            不定時送福利，歡迎反饋意見。
+          </p>
+          <h3>今日重點（2026-05-27）</h3>
+          <p>
+            本工具可匯入蝦殼 Excel，在本機彙整買家統計、篩選排序欄位、查看 Case Detail、
+            找出共用電話/姓名線索，並匯出統計與明細。
+          </p>
+          <p>備註：若異常請使用強制重載最新版（等同 Ctrl+F5）。</p>
+        </div>
+        <button class="primary-btn" id="privacyConfirmBtn" type="button">我知道了</button>
+      </div>
+    </div>
+
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="vendor/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
