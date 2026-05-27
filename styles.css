@@ -998,7 +998,7 @@ body.is-resizing-column {
 }
 
 .mini-table-wrap table {
-  min-width: 680px;
+  min-width: 1120px;
 }
 
 .detail-drawer th,

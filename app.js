@@ -21,6 +21,9 @@
     "購買商品名稱統整",
     "收件電話統整",
     "收件人姓名統整",
+    "收件地址統整",
+    "付款方式統整",
+    "寄送方式統整",
   ];
 
   const DETAIL_HEADERS = [
@@ -123,6 +126,33 @@
       multiline: true,
       display: (summary) => summary.nameText,
       sortValue: (summary) => summary.nameText,
+    },
+    {
+      key: "addressText",
+      label: "收件地址統整",
+      type: "text",
+      width: 320,
+      multiline: true,
+      display: (summary) => summary.addressText,
+      sortValue: (summary) => summary.addressText,
+    },
+    {
+      key: "paymentText",
+      label: "付款方式統整",
+      type: "text",
+      width: 190,
+      multiline: true,
+      display: (summary) => summary.paymentText,
+      sortValue: (summary) => summary.paymentText,
+    },
+    {
+      key: "shippingText",
+      label: "寄送方式統整",
+      type: "text",
+      width: 190,
+      multiline: true,
+      display: (summary) => summary.shippingText,
+      sortValue: (summary) => summary.shippingText,
     },
   ];
 
@@ -417,6 +447,9 @@
           productMap: new Map(),
           phoneMap: new Map(),
           nameMap: new Map(),
+          addressMap: new Map(),
+          paymentMap: new Map(),
+          shippingMap: new Map(),
           detailRows: [],
           firstSeenIndex: buyers.size,
         });
@@ -448,6 +481,9 @@
 
       uniquePush(summary.phoneMap, record.phone);
       uniquePush(summary.nameMap, record.name);
+      uniquePush(summary.addressMap, record.address);
+      uniquePush(summary.paymentMap, record.payment);
+      uniquePush(summary.shippingMap, record.shipping);
     });
 
     const summaries = Array.from(buyers.values()).map(finalizeSummary);
@@ -462,11 +498,17 @@
     });
     const phones = Array.from(summary.phoneMap.keys());
     const names = Array.from(summary.nameMap.keys());
+    const addresses = Array.from(summary.addressMap.keys());
+    const payments = Array.from(summary.paymentMap.keys());
+    const shippings = Array.from(summary.shippingMap.keys());
     const totalAmount = orders.reduce((sum, order) => sum + order.amount, 0);
     const dateText = orders.map((order) => order.dateText).join("\n");
     const productsText = products.map((item) => `${item.name} x ${item.quantity}`).join("\n");
     const phoneText = phones.join("\n");
     const nameText = names.join("\n");
+    const addressText = addresses.join("\n");
+    const paymentText = payments.join("\n");
+    const shippingText = shippings.join("\n");
     const latestDateMs = orders.reduce(
       (max, order) => (order.dateMs !== null && order.dateMs > max ? order.dateMs : max),
       -Infinity
@@ -482,12 +524,18 @@
       products,
       phones,
       names,
+      addresses,
+      payments,
+      shippings,
       totalAmount,
       orderCount: orders.length,
       dateText,
       productsText,
       phoneText,
       nameText,
+      addressText,
+      paymentText,
+      shippingText,
       latestDateMs: latestDateMs === -Infinity ? null : latestDateMs,
       firstDateMs: firstDateMs === Infinity ? null : firstDateMs,
       searchBlob: [
@@ -496,7 +544,9 @@
         productsText,
         phoneText,
         nameText,
-        summary.detailRows.map((row) => row.address).join("\n"),
+        addressText,
+        paymentText,
+        shippingText,
       ]
         .join("\n")
         .toLowerCase(),
@@ -613,6 +663,9 @@
       summary.productsText,
       summary.phoneText,
       summary.nameText,
+      summary.addressText,
+      summary.paymentText,
+      summary.shippingText,
     ]);
   }
 
@@ -635,6 +688,19 @@
         row.rowNumber,
       ])
     );
+  }
+
+  function joinUniqueValues(items, key) {
+    const values = [];
+    const seen = new Set();
+    items.forEach((item) => {
+      const text = cleanCell(item[key]);
+      if (text && !seen.has(text)) {
+        seen.add(text);
+        values.push(text);
+      }
+    });
+    return values.join("\n");
   }
 
   function getSummaryColumn(key) {
@@ -1611,7 +1677,7 @@
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     const headRow = document.createElement("tr");
-    ["日期", "訂單編號", "金額", "商品"].forEach((header) => {
+    ["日期", "訂單編號", "金額", "商品", "收件地址", "付款方式", "寄送方式"].forEach((header) => {
       const th = document.createElement("th");
       th.textContent = header;
       headRow.appendChild(th);
@@ -1626,10 +1692,13 @@
         order.orderIdDisplay || order.orderId,
         currencyFormatter.format(Math.round(order.amount)),
         orderRows.map((row) => `${row.product || "-"} x ${row.quantity}`).join("\n"),
+        joinUniqueValues(orderRows, "address") || "-",
+        joinUniqueValues(orderRows, "payment") || "-",
+        joinUniqueValues(orderRows, "shipping") || "-",
       ].forEach((value, index) => {
         const td = document.createElement("td");
         td.textContent = value;
-        if (index === 3) td.className = "multiline";
+        if (index >= 3) td.className = "multiline";
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -1705,6 +1774,9 @@
       { wch: 70 },
       { wch: 22 },
       { wch: 20 },
+      { wch: 46 },
+      { wch: 18 },
+      { wch: 22 },
     ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "買家統計");
@@ -1735,6 +1807,9 @@
       { wch: 70 },
       { wch: 22 },
       { wch: 20 },
+      { wch: 46 },
+      { wch: 18 },
+      { wch: 22 },
     ];
 
     const detailWorksheet = XLSX.utils.aoa_to_sheet([DETAIL_HEADERS, ...buildDetailRows([summary])]);
