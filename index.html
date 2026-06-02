@@ -22,7 +22,7 @@
         document.documentElement.dataset.theme = "dark";
       }
     </script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260602-2">
   </head>
   <body>
     <div class="app-shell" id="appShell">
@@ -86,6 +86,40 @@
             </button>
             <ul id="warningList" hidden></ul>
           </div>
+
+          <section class="filters" id="yearFilterPanel" aria-label="訂單年份篩選">
+            <div class="filter-header">
+              <div>
+                <p class="eyebrow">Order Year</p>
+                <h1>訂單年份篩選</h1>
+              </div>
+              <div class="filter-actions">
+                <button id="selectAllYearsBtn" type="button" disabled>全選</button>
+                <button id="clearYearsBtn" type="button" disabled>清除</button>
+              </div>
+            </div>
+            <div class="year-options" id="yearOptions" role="group" aria-label="選擇訂單年份">
+              <p class="empty-note">載入資料後會顯示可篩選年份。</p>
+            </div>
+            <div class="filter-summary" aria-label="年份篩選結果摘要">
+              <article>
+                <span>已選年份</span>
+                <strong id="filterYears">-</strong>
+              </article>
+              <article>
+                <span>篩選後買家</span>
+                <strong id="filterBuyers">0</strong>
+              </article>
+              <article>
+                <span>完成訂單</span>
+                <strong id="filterOrders">0</strong>
+              </article>
+              <article>
+                <span>實際撥款總額</span>
+                <strong id="filterAmount">0</strong>
+              </article>
+            </div>
+          </section>
 
           <section class="table-panel" aria-label="買家統計表">
             <div class="table-head">
@@ -204,6 +238,7 @@
           <h2 id="drawerBuyer">買家明細</h2>
         </div>
         <div class="drawer-actions">
+          <button id="toggleCaseModeBtn" type="button" disabled>查看篩選前</button>
           <button id="exportCaseXlsxBtn" type="button" disabled>匯出 Excel</button>
           <button id="exportCaseCsvBtn" type="button" disabled>匯出 CSV</button>
           <button id="closeDrawerBtn" class="drawer-close" type="button" aria-label="關閉明細">×</button>
@@ -237,8 +272,16 @@
       </div>
     </div>
 
+    <div class="update-banner" id="updateBanner" role="status" hidden>
+      <div>
+        <strong>有新版本可用</strong>
+        <span>重新載入後即可使用最新功能。</span>
+      </div>
+      <button id="updateReloadBtn" type="button">重新載入</button>
+    </div>
+
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260602-2"></script>
   </body>
 </html>

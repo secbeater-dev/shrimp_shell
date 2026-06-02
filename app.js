@@ -1,6 +1,9 @@
 (function () {
   "use strict";
 
+  const APP_VERSION = "20260602-2";
+  const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
+
   const REQUIRED_COLUMNS = [
     "訂單編號",
     "訂單狀態",
@@ -164,11 +167,19 @@
     sourceRowCount: 0,
     currentSummaries: [],
     currentRows: [],
+    allSummaries: [],
+    allSummaryMap: new Map(),
+    filteredSummaryMap: new Map(),
     charts: {},
     activeView: "buyers",
     sidebarCollapsed: false,
     activeClue: null,
     currentCaseSummary: null,
+    currentCaseBuyer: "",
+    currentCaseMode: "filtered",
+    availableYears: [],
+    selectedYears: [],
+    yearRowCounts: {},
     theme: "dark",
     summaryColumnOrder: SUMMARY_COLUMNS.map((column) => column.key),
     summaryColumnWidths: Object.fromEntries(SUMMARY_COLUMNS.map((column) => [column.key, column.width])),
@@ -269,6 +280,72 @@
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
       date.getDate()
     ).padStart(2, "0")}`;
+  }
+
+  function getRecordYear(record) {
+    if (record && record.dateMs !== null && record.dateMs !== undefined) {
+      const date = new Date(record.dateMs);
+      if (!Number.isNaN(date.getTime())) return date.getFullYear();
+    }
+    const match = cleanCell(record && record.dateText).match(/^(\d{4})[-/]/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function normalizeYears(years) {
+    const source = years instanceof Set ? Array.from(years) : Array.isArray(years) ? years : [];
+    return source
+      .map((year) => Number(year))
+      .filter((year) => Number.isInteger(year) && year > 0)
+      .sort((a, b) => a - b);
+  }
+
+  function normalizeYearFilter(years) {
+    if (years === null || years === undefined) return null;
+    return new Set(normalizeYears(years));
+  }
+
+  function buildYearStats(records) {
+    const counts = new Map();
+    records.forEach((record) => {
+      if (record.status !== "COMPLETED" || !record.buyer) return;
+      const year = getRecordYear(record);
+      if (year === null) return;
+      counts.set(year, (counts.get(year) || 0) + 1);
+    });
+    return Array.from(counts, ([year, count]) => ({ year, count })).sort((a, b) => a.year - b.year);
+  }
+
+  function resetYearSelectionFromRecords() {
+    const stats = buildYearStats(state.records);
+    state.availableYears = stats.map((item) => item.year);
+    state.selectedYears = [...state.availableYears];
+    state.yearRowCounts = Object.fromEntries(stats.map((item) => [item.year, item.count]));
+  }
+
+  function getActiveYearFilter() {
+    if (!state.availableYears.length) return null;
+    if (!state.selectedYears.length) return new Set();
+    return state.selectedYears.length === state.availableYears.length ? null : new Set(state.selectedYears);
+  }
+
+  function isYearFilterConstrained() {
+    return Boolean(state.availableYears.length && state.selectedYears.length !== state.availableYears.length);
+  }
+
+  function getSelectedYearLabel() {
+    if (!state.availableYears.length) return "尚無可篩選年份";
+    if (!state.selectedYears.length) return "未選年份";
+    if (state.selectedYears.length === state.availableYears.length) return "全年度";
+    return state.selectedYears.join("、");
+  }
+
+  function getYearScopeFilename(prefix) {
+    const mode = prefix ? `${prefix}_` : "";
+    if (!state.availableYears.length || state.selectedYears.length === state.availableYears.length) {
+      return `${mode}全年度`;
+    }
+    if (!state.selectedYears.length) return `${mode}未選年份`;
+    return `${mode}${state.selectedYears.join("_")}`;
   }
 
   function dateInputToRange(value, endOfDay) {
@@ -430,11 +507,16 @@
     const dateFromMs = dateInputToRange(settings.dateFrom, false);
     const dateToMs = dateInputToRange(settings.dateTo, true);
     const productTerm = normalizeSearch(settings.productKeyword);
+    const yearFilter = normalizeYearFilter(settings.years);
     const buyers = new Map();
     const includedRows = [];
 
     records.forEach((record) => {
       if (record.status !== "COMPLETED" || !record.buyer) return;
+      if (yearFilter) {
+        const recordYear = getRecordYear(record);
+        if (recordYear === null || !yearFilter.has(recordYear)) return;
+      }
       if (dateFromMs !== null && (record.dateMs === null || record.dateMs < dateFromMs)) return;
       if (dateToMs !== null && (record.dateMs === null || record.dateMs > dateToMs)) return;
       if (productTerm && !normalizeSearch(record.product).includes(productTerm)) return;
@@ -782,6 +864,8 @@
       viewPanels: Array.from(document.querySelectorAll("[data-view]")),
       privacyModal: document.getElementById("privacyModal"),
       privacyConfirmBtn: document.getElementById("privacyConfirmBtn"),
+      updateBanner: document.getElementById("updateBanner"),
+      updateReloadBtn: document.getElementById("updateReloadBtn"),
       fileInput: document.getElementById("fileInput"),
       selectFileBtn: document.getElementById("selectFileBtn"),
       dropZone: document.getElementById("dropZone"),
@@ -794,6 +878,14 @@
       warningCount: document.getElementById("warningCount"),
       warningList: document.getElementById("warningList"),
       toggleWarningsBtn: document.getElementById("toggleWarningsBtn"),
+      yearFilterPanel: document.getElementById("yearFilterPanel"),
+      yearOptions: document.getElementById("yearOptions"),
+      selectAllYearsBtn: document.getElementById("selectAllYearsBtn"),
+      clearYearsBtn: document.getElementById("clearYearsBtn"),
+      filterYears: document.getElementById("filterYears"),
+      filterBuyers: document.getElementById("filterBuyers"),
+      filterOrders: document.getElementById("filterOrders"),
+      filterAmount: document.getElementById("filterAmount"),
       resetClueBtn: document.getElementById("resetClueBtn"),
       kpiBuyers: document.getElementById("kpiBuyers"),
       kpiOrders: document.getElementById("kpiOrders"),
@@ -809,6 +901,7 @@
       detailDrawer: document.getElementById("detailDrawer"),
       drawerBuyer: document.getElementById("drawerBuyer"),
       drawerContent: document.getElementById("drawerContent"),
+      toggleCaseModeBtn: document.getElementById("toggleCaseModeBtn"),
       exportCaseXlsxBtn: document.getElementById("exportCaseXlsxBtn"),
       exportCaseCsvBtn: document.getElementById("exportCaseCsvBtn"),
       closeDrawerBtn: document.getElementById("closeDrawerBtn"),
@@ -822,6 +915,7 @@
     maybeShowPrivacyModal();
     document.documentElement.dataset.appReady = "true";
     render();
+    startUpdateChecks();
   }
 
   function setupEvents() {
@@ -863,6 +957,9 @@
     elements.exportCaseXlsxBtn.addEventListener("click", exportCurrentCaseXlsx);
     elements.exportCaseCsvBtn.addEventListener("click", exportCurrentCaseCsv);
     elements.closeDrawerBtn.addEventListener("click", closeDrawer);
+    elements.toggleCaseModeBtn.addEventListener("click", toggleCaseMode);
+    elements.selectAllYearsBtn.addEventListener("click", selectAllYears);
+    elements.clearYearsBtn.addEventListener("click", clearSelectedYears);
     elements.toggleWarningsBtn.addEventListener("click", toggleWarnings);
     elements.resetClueBtn.addEventListener("click", resetClueSelection);
     elements.navItems.forEach((item) => {
@@ -870,12 +967,14 @@
     });
     elements.sidebarCollapseBtn.addEventListener("click", () => setSidebarCollapsed(!state.sidebarCollapsed));
     elements.privacyConfirmBtn.addEventListener("click", closePrivacyModal);
+    elements.updateReloadBtn.addEventListener("click", reloadForUpdate);
     elements.privacyModal.addEventListener("click", (event) => {
       if (event.target === elements.privacyModal) closePrivacyModal();
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !elements.privacyModal.hidden) closePrivacyModal();
     });
+    window.addEventListener("focus", checkForAppUpdate);
   }
 
   function setActiveView(viewName) {
@@ -955,6 +1054,34 @@
     }
   }
 
+  function startUpdateChecks() {
+    window.setTimeout(checkForAppUpdate, 1200);
+    window.setInterval(checkForAppUpdate, UPDATE_CHECK_INTERVAL_MS);
+  }
+
+  async function checkForAppUpdate() {
+    if (!elements.updateBanner || typeof fetch !== "function") return;
+    try {
+      const response = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = await response.json();
+      const remoteVersion = cleanCell(payload && payload.version);
+      if (remoteVersion && remoteVersion !== APP_VERSION) {
+        showUpdateBanner();
+      }
+    } catch (error) {
+      // Update checks must never interrupt local analysis work.
+    }
+  }
+
+  function showUpdateBanner() {
+    elements.updateBanner.hidden = false;
+  }
+
+  function reloadForUpdate() {
+    window.location.reload();
+  }
+
   function resizeCharts() {
     Object.values(state.charts).forEach((chart) => {
       if (chart && typeof chart.resize === "function") chart.resize();
@@ -997,6 +1124,10 @@
       state.fileName = file.name;
       state.sheetName = parsed.sheetName;
       state.sourceRowCount = parsed.sourceRowCount;
+      state.currentCaseBuyer = "";
+      state.currentCaseSummary = null;
+      state.currentCaseMode = "filtered";
+      resetYearSelectionFromRecords();
       elements.fileMeta.textContent = `${file.name} / 工作表：${parsed.sheetName} / ${numberFormatter.format(
         parsed.sourceRowCount
       )} 列`;
@@ -1011,6 +1142,13 @@
       state.warnings = [];
       state.currentSummaries = [];
       state.currentRows = [];
+      state.allSummaries = [];
+      state.allSummaryMap = new Map();
+      state.filteredSummaryMap = new Map();
+      state.currentCaseBuyer = "";
+      state.currentCaseSummary = null;
+      state.currentCaseMode = "filtered";
+      resetYearSelectionFromRecords();
       elements.fileMeta.textContent = "尚未載入檔案";
       setNotice("解析失敗", error.message || String(error), "error");
       render();
@@ -1024,9 +1162,42 @@
     render();
   }
 
+  function selectAllYears() {
+    state.selectedYears = [...state.availableYears];
+    render();
+  }
+
+  function clearSelectedYears() {
+    state.selectedYears = [];
+    render();
+  }
+
+  function toggleYearSelection(year, checked) {
+    const normalizedYear = Number(year);
+    if (!Number.isInteger(normalizedYear)) return;
+    const selected = new Set(state.selectedYears);
+    if (checked) {
+      selected.add(normalizedYear);
+    } else {
+      selected.delete(normalizedYear);
+    }
+    state.selectedYears = normalizeYears(Array.from(selected));
+    render();
+  }
+
+  function toggleCaseMode() {
+    state.currentCaseMode = state.currentCaseMode === "filtered" ? "all" : "filtered";
+    renderCurrentDrawer();
+  }
+
   function render() {
-    const aggregation = aggregateRecords(state.records, {});
-    const summaries = applyDisplayFilters(aggregation.summaries, {
+    const allAggregation = aggregateRecords(state.records, {});
+    const filteredAggregation = aggregateRecords(state.records, { years: getActiveYearFilter() });
+    state.allSummaries = allAggregation.summaries;
+    state.allSummaryMap = new Map(allAggregation.summaries.map((summary) => [summary.buyer, summary]));
+    state.filteredSummaryMap = new Map(filteredAggregation.summaries.map((summary) => [summary.buyer, summary]));
+
+    const summaries = applyDisplayFilters(filteredAggregation.summaries, {
       columnFilters: state.summaryColumnFilters,
       sortKey: state.summarySortKey,
       sortDirection: state.summarySortDirection,
@@ -1034,11 +1205,13 @@
     state.currentSummaries = summaries;
     state.currentRows = buildDetailRows(summaries);
 
+    renderYearFilters(summaries);
     renderKpis(summaries);
     renderTable(summaries);
     renderCharts(summaries);
     renderWarnings(state.warnings);
     updateExportState(summaries.length > 0);
+    if (state.currentCaseBuyer) renderCurrentDrawer();
     requestAnimationFrame(resizeCharts);
   }
 
@@ -1064,6 +1237,51 @@
         ? "-"
         : `${formatDateOnly(minDate)} ~ ${formatDateOnly(maxDate)}`;
     elements.resultCount.textContent = `${numberFormatter.format(summaries.length)} 筆`;
+  }
+
+  function renderYearFilters(summaries) {
+    const orderCount = summaries.reduce((sum, item) => sum + item.orderCount, 0);
+    const totalAmount = summaries.reduce((sum, item) => sum + item.totalAmount, 0);
+
+    elements.filterYears.textContent = getSelectedYearLabel();
+    elements.filterBuyers.textContent = numberFormatter.format(summaries.length);
+    elements.filterOrders.textContent = numberFormatter.format(orderCount);
+    elements.filterAmount.textContent = currencyFormatter.format(Math.round(totalAmount));
+
+    elements.selectAllYearsBtn.disabled = !state.availableYears.length;
+    elements.clearYearsBtn.disabled = !state.availableYears.length;
+    elements.yearOptions.textContent = "";
+
+    if (!state.records.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-note";
+      empty.textContent = "載入資料後會顯示可篩選年份。";
+      elements.yearOptions.appendChild(empty);
+      return;
+    }
+
+    if (!state.availableYears.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-note";
+      empty.textContent = "目前資料沒有可解析的訂單年份。";
+      elements.yearOptions.appendChild(empty);
+      return;
+    }
+
+    const selected = new Set(state.selectedYears);
+    state.availableYears.forEach((year) => {
+      const label = document.createElement("label");
+      label.className = "year-chip";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = String(year);
+      input.checked = selected.has(year);
+      input.addEventListener("change", (event) => toggleYearSelection(year, event.target.checked));
+      const text = document.createElement("span");
+      text.textContent = `${year} (${numberFormatter.format(state.yearRowCounts[year] || 0)})`;
+      label.append(input, text);
+      elements.yearOptions.appendChild(label);
+    });
   }
 
   function renderTable(summaries) {
@@ -1629,10 +1847,55 @@
   }
 
   function openDrawer(summary) {
+    state.currentCaseBuyer = summary.buyer;
+    state.currentCaseMode = "filtered";
+    elements.detailDrawer.classList.add("open");
+    elements.detailDrawer.setAttribute("aria-hidden", "false");
+    renderCurrentDrawer();
+  }
+
+  function getCaseSummaryForMode(mode) {
+    if (!state.currentCaseBuyer) return null;
+    const map = mode === "all" ? state.allSummaryMap : state.filteredSummaryMap;
+    return map.get(state.currentCaseBuyer) || null;
+  }
+
+  function renderCurrentDrawer() {
+    if (!state.currentCaseBuyer) return;
+    const summary = getCaseSummaryForMode(state.currentCaseMode);
     state.currentCaseSummary = summary;
-    elements.drawerBuyer.textContent = summary.buyer;
+    elements.drawerBuyer.textContent = state.currentCaseBuyer;
     elements.drawerContent.textContent = "";
-    updateCaseExportState(true);
+    updateCaseExportState(Boolean(summary));
+    elements.toggleCaseModeBtn.disabled = !state.allSummaryMap.has(state.currentCaseBuyer);
+    elements.toggleCaseModeBtn.textContent =
+      state.currentCaseMode === "filtered" ? "查看篩選前" : "查看篩選後";
+    elements.toggleCaseModeBtn.setAttribute("aria-pressed", String(state.currentCaseMode === "all"));
+
+    const modeBar = document.createElement("div");
+    modeBar.className = "drawer-mode-bar";
+    const modeTitle = document.createElement("strong");
+    modeTitle.textContent = state.currentCaseMode === "filtered" ? "目前顯示：篩選後結果" : "目前顯示：篩選前結果";
+    const modeText = document.createElement("span");
+    modeText.textContent =
+      state.currentCaseMode === "filtered"
+        ? `年份：${getSelectedYearLabel()}`
+        : "全年度完成訂單，未套用年份篩選。";
+    modeBar.append(modeTitle, modeText);
+    elements.drawerContent.appendChild(modeBar);
+
+    if (!summary) {
+      const empty = document.createElement("div");
+      empty.className = "drawer-section";
+      const title = document.createElement("h3");
+      title.textContent = "沒有符合資料";
+      const note = document.createElement("p");
+      note.className = "empty-note";
+      note.textContent = "目前年份篩選下沒有這位買家的完成訂單，可切換查看篩選前結果。";
+      empty.append(title, note);
+      elements.drawerContent.appendChild(empty);
+      return;
+    }
 
     const stats = document.createElement("div");
     stats.className = "drawer-stats";
@@ -1708,15 +1971,16 @@
     orders.append(ordersTitle, orderWrap);
 
     elements.drawerContent.append(stats, products, orders);
-    elements.detailDrawer.classList.add("open");
-    elements.detailDrawer.setAttribute("aria-hidden", "false");
   }
 
   function closeDrawer() {
     elements.detailDrawer.classList.remove("open");
     elements.detailDrawer.setAttribute("aria-hidden", "true");
     state.currentCaseSummary = null;
+    state.currentCaseBuyer = "";
+    state.currentCaseMode = "filtered";
     updateCaseExportState(false);
+    elements.toggleCaseModeBtn.disabled = true;
   }
 
   function setNotice(title, body, type) {
@@ -1780,17 +2044,25 @@
     ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "買家統計");
-    XLSX.writeFile(workbook, `買家統計分析_${timestamp()}.xlsx`, { compression: true });
+    XLSX.writeFile(workbook, `買家統計分析_${getYearScopeFilename("")}_${timestamp()}.xlsx`, {
+      compression: true,
+    });
   }
 
   function exportSummaryCsv() {
     if (!state.currentSummaries.length) return;
-    downloadCsv([OUTPUT_HEADERS, ...buildSummaryRows(state.currentSummaries)], `買家統計分析_${timestamp()}.csv`);
+    downloadCsv(
+      [OUTPUT_HEADERS, ...buildSummaryRows(state.currentSummaries)],
+      `買家統計分析_${getYearScopeFilename("")}_${timestamp()}.csv`
+    );
   }
 
   function exportDetailsCsv() {
     if (!state.currentSummaries.length) return;
-    downloadCsv([DETAIL_HEADERS, ...buildDetailRows(state.currentSummaries)], `買家明細_${timestamp()}.csv`);
+    downloadCsv(
+      [DETAIL_HEADERS, ...buildDetailRows(state.currentSummaries)],
+      `買家明細_${getYearScopeFilename("")}_${timestamp()}.csv`
+    );
   }
 
   function exportCurrentCaseXlsx() {
@@ -1832,13 +2104,25 @@
 
     XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "買家統計");
     XLSX.utils.book_append_sheet(workbook, detailWorksheet, "訂單明細");
-    XLSX.writeFile(workbook, `Case_Detail_${safeFilename(summary.buyer)}_${timestamp()}.xlsx`, { compression: true });
+    XLSX.writeFile(
+      workbook,
+      `Case_Detail_${safeFilename(summary.buyer)}_${getCaseScopeFilename()}_${timestamp()}.xlsx`,
+      { compression: true }
+    );
   }
 
   function exportCurrentCaseCsv() {
     const summary = state.currentCaseSummary;
     if (!summary) return;
-    downloadCsv([DETAIL_HEADERS, ...buildDetailRows([summary])], `Case_Detail_${safeFilename(summary.buyer)}_${timestamp()}.csv`);
+    downloadCsv(
+      [DETAIL_HEADERS, ...buildDetailRows([summary])],
+      `Case_Detail_${safeFilename(summary.buyer)}_${getCaseScopeFilename()}_${timestamp()}.csv`
+    );
+  }
+
+  function getCaseScopeFilename() {
+    if (state.currentCaseMode === "all") return "篩選前_全年度";
+    return getYearScopeFilename("篩選後");
   }
 
   function downloadCsv(aoa, filename) {
