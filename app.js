@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "20260602-2";
+  const APP_VERSION = "20260602-3";
   const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
   const REQUIRED_COLUMNS = [
@@ -882,10 +882,6 @@
       yearOptions: document.getElementById("yearOptions"),
       selectAllYearsBtn: document.getElementById("selectAllYearsBtn"),
       clearYearsBtn: document.getElementById("clearYearsBtn"),
-      filterYears: document.getElementById("filterYears"),
-      filterBuyers: document.getElementById("filterBuyers"),
-      filterOrders: document.getElementById("filterOrders"),
-      filterAmount: document.getElementById("filterAmount"),
       resetClueBtn: document.getElementById("resetClueBtn"),
       kpiBuyers: document.getElementById("kpiBuyers"),
       kpiOrders: document.getElementById("kpiOrders"),
@@ -1205,7 +1201,7 @@
     state.currentSummaries = summaries;
     state.currentRows = buildDetailRows(summaries);
 
-    renderYearFilters(summaries);
+    renderYearFilters();
     renderKpis(summaries);
     renderTable(summaries);
     renderCharts(summaries);
@@ -1239,15 +1235,7 @@
     elements.resultCount.textContent = `${numberFormatter.format(summaries.length)} 筆`;
   }
 
-  function renderYearFilters(summaries) {
-    const orderCount = summaries.reduce((sum, item) => sum + item.orderCount, 0);
-    const totalAmount = summaries.reduce((sum, item) => sum + item.totalAmount, 0);
-
-    elements.filterYears.textContent = getSelectedYearLabel();
-    elements.filterBuyers.textContent = numberFormatter.format(summaries.length);
-    elements.filterOrders.textContent = numberFormatter.format(orderCount);
-    elements.filterAmount.textContent = currencyFormatter.format(Math.round(totalAmount));
-
+  function renderYearFilters() {
     elements.selectAllYearsBtn.disabled = !state.availableYears.length;
     elements.clearYearsBtn.disabled = !state.availableYears.length;
     elements.yearOptions.textContent = "";

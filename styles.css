@@ -634,35 +634,6 @@ label {
   padding: 20px;
 }
 
-.filter-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr));
-  gap: 10px;
-}
-
-.filter-summary article {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 14px;
-  background:
-    linear-gradient(180deg, rgba(239, 35, 35, 0.08), rgba(255, 255, 255, 0.025)),
-    rgba(16, 16, 15, 0.35);
-}
-
-.filter-summary span {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-.filter-summary strong {
-  color: var(--paper);
-  font-size: 1.45rem;
-  line-height: 1.1;
-  overflow-wrap: anywhere;
-}
-
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1224,9 +1195,6 @@ body.is-resizing-column {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .filter-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 620px) {
@@ -1257,7 +1225,6 @@ body.is-resizing-column {
 
   .split-fields,
   .filter-grid,
-  .filter-summary,
   .kpi-grid,
   .drawer-stats {
     grid-template-columns: 1fr;
