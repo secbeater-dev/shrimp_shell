@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "20260602-3";
+  const APP_VERSION = "20260602-4";
   const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
   const REQUIRED_COLUMNS = [
@@ -190,6 +190,7 @@
     activeColumnFilterKey: "",
     activeColumnFilterStart: null,
     activeColumnFilterEnd: null,
+    isSyncingSummaryScroll: false,
   };
 
   const elements = {};
@@ -889,6 +890,9 @@
       kpiDateRange: document.getElementById("kpiDateRange"),
       kpiProducts: document.getElementById("kpiProducts"),
       resultCount: document.getElementById("resultCount"),
+      summaryTopScroll: document.getElementById("summaryTopScroll"),
+      summaryTopScrollSpacer: document.getElementById("summaryTopScrollSpacer"),
+      summaryTableWrap: document.getElementById("summaryTableWrap"),
       summaryTable: document.getElementById("summaryTable"),
       summaryColgroup: document.getElementById("summaryColgroup"),
       summaryHeadRow: document.getElementById("summaryHeadRow"),
@@ -956,6 +960,12 @@
     elements.toggleCaseModeBtn.addEventListener("click", toggleCaseMode);
     elements.selectAllYearsBtn.addEventListener("click", selectAllYears);
     elements.clearYearsBtn.addEventListener("click", clearSelectedYears);
+    elements.summaryTopScroll.addEventListener("scroll", () =>
+      syncSummaryScroll(elements.summaryTopScroll, elements.summaryTableWrap)
+    );
+    elements.summaryTableWrap.addEventListener("scroll", () =>
+      syncSummaryScroll(elements.summaryTableWrap, elements.summaryTopScroll)
+    );
     elements.toggleWarningsBtn.addEventListener("click", toggleWarnings);
     elements.resetClueBtn.addEventListener("click", resetClueSelection);
     elements.navItems.forEach((item) => {
@@ -1382,8 +1392,22 @@
       elements.summaryHeadRow.appendChild(th);
     });
 
-    elements.summaryTable.style.width = `${tableWidth}px`;
+    setSummaryTableWidth(tableWidth);
     restoreColumnFilterFocus();
+  }
+
+  function setSummaryTableWidth(tableWidth) {
+    const width = Math.max(tableWidth, elements.summaryTableWrap ? elements.summaryTableWrap.clientWidth : 0);
+    elements.summaryTable.style.width = `${width}px`;
+    elements.summaryTopScrollSpacer.style.width = `${width}px`;
+    elements.summaryTopScroll.scrollLeft = elements.summaryTableWrap.scrollLeft;
+  }
+
+  function syncSummaryScroll(source, target) {
+    if (state.isSyncingSummaryScroll) return;
+    state.isSyncingSummaryScroll = true;
+    target.scrollLeft = source.scrollLeft;
+    state.isSyncingSummaryScroll = false;
   }
 
   function setSummarySort(columnKey) {
@@ -1517,7 +1541,7 @@
       const col = elements.summaryColgroup.querySelector(`col[data-column-key="${column.key}"]`);
       if (col) col.style.width = `${width}px`;
     });
-    elements.summaryTable.style.width = `${tableWidth}px`;
+    setSummaryTableWidth(tableWidth);
   }
 
   function renderCharts(summaries) {

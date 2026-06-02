@@ -720,6 +720,18 @@ label {
   color: var(--muted);
 }
 
+.table-scrollbar {
+  height: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.table-scrollbar div {
+  height: 1px;
+}
+
 .table-wrap {
   max-height: 680px;
   overflow: auto;

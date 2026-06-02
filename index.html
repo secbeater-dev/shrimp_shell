@@ -22,7 +22,7 @@
         document.documentElement.dataset.theme = "dark";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260602-3">
+    <link rel="stylesheet" href="styles.css?v=20260602-4">
   </head>
   <body>
     <div class="app-shell" id="appShell">
@@ -111,7 +111,10 @@
               </div>
               <p id="resultCount">0 筆</p>
             </div>
-            <div class="table-wrap">
+            <div class="table-scrollbar" id="summaryTopScroll" aria-label="表格上方水平拖拉條">
+              <div id="summaryTopScrollSpacer"></div>
+            </div>
+            <div class="table-wrap" id="summaryTableWrap">
               <table class="summary-table" id="summaryTable">
                 <colgroup id="summaryColgroup"></colgroup>
                 <thead>
@@ -264,6 +267,6 @@
 
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
-    <script src="app.js?v=20260602-3"></script>
+    <script src="app.js?v=20260602-4"></script>
   </body>
 </html>
