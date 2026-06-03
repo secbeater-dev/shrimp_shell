@@ -314,6 +314,11 @@ label {
   display: grid;
 }
 
+.import-control-panel {
+  display: grid;
+  gap: 18px;
+}
+
 .upload-zone,
 .filters,
 .export-panel,
@@ -380,6 +385,87 @@ label {
 
 .upload-zone .primary-btn {
   min-width: min(260px, 100%);
+}
+
+.import-control-panel.has-file {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.95fr) minmax(220px, 0.8fr) minmax(360px, 1.4fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)),
+    var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.import-control-panel:not(.has-file) .filters {
+  display: none;
+}
+
+.import-control-panel.has-file .upload-zone,
+.import-control-panel.has-file .notice-panel,
+.import-control-panel.has-file .filters {
+  width: auto;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.import-control-panel.has-file .upload-zone {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  overflow: visible;
+}
+
+.import-control-panel.has-file .upload-zone::before,
+.import-control-panel.has-file .upload-help,
+.import-control-panel.has-file .filters .eyebrow {
+  display: none;
+}
+
+.import-control-panel.has-file .upload-zone .primary-btn {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0.58rem 0.95rem;
+}
+
+.import-control-panel.has-file .file-meta {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--paper) !important;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-control-panel.has-file .notice-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--paper-2);
+}
+
+.import-control-panel.has-file .notice-panel strong,
+.import-control-panel.has-file .notice-panel span {
+  min-width: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.import-control-panel.has-file .notice-panel span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-meta {
@@ -654,6 +740,42 @@ label {
   min-height: 42px;
 }
 
+.import-control-panel.has-file .filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.import-control-panel.has-file .filter-header {
+  display: contents;
+}
+
+.import-control-panel.has-file .filter-header > div:first-child {
+  flex: 0 0 auto;
+  order: 1;
+}
+
+.import-control-panel.has-file .filters h1 {
+  color: var(--muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.import-control-panel.has-file .year-options {
+  flex: 1 1 160px;
+  order: 2;
+  min-height: 0;
+  gap: 8px;
+}
+
+.import-control-panel.has-file .filter-actions {
+  flex: 0 0 auto;
+  order: 3;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .year-chip {
   display: inline-flex;
   align-items: center;
@@ -665,6 +787,11 @@ label {
   color: var(--paper-2);
   background: rgba(16, 16, 15, 0.35);
   cursor: pointer;
+}
+
+.import-control-panel.has-file .year-chip {
+  min-height: 36px;
+  padding: 0.42rem 0.62rem;
 }
 
 .year-chip:hover,
@@ -1154,6 +1281,26 @@ body.is-resizing-column {
   font-weight: 850;
 }
 
+@media (max-width: 980px) {
+  .import-control-panel.has-file {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .import-control-panel.has-file .upload-zone {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .import-control-panel.has-file .notice-panel span,
+  .import-control-panel.has-file .file-meta {
+    white-space: normal;
+  }
+
+  .import-control-panel.has-file .filter-actions {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 1180px) {
   .app-shell {
     grid-template-columns: 248px minmax(0, 1fr);
@@ -1253,6 +1400,38 @@ body.is-resizing-column {
 
   .filter-actions button {
     flex: 1 1 auto;
+  }
+
+  .import-control-panel.has-file {
+    padding: 14px;
+  }
+
+  .import-control-panel.has-file .upload-zone {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .import-control-panel.has-file .upload-zone .primary-btn {
+    width: 100%;
+  }
+
+  .import-control-panel.has-file .filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .import-control-panel.has-file .filter-header {
+    display: flex;
+  }
+
+  .import-control-panel.has-file .filter-header > div:first-child,
+  .import-control-panel.has-file .year-options,
+  .import-control-panel.has-file .filter-actions {
+    width: 100%;
+  }
+
+  .import-control-panel.has-file .filter-actions {
+    justify-content: stretch;
   }
 
   .upload-zone,

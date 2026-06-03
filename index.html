@@ -22,7 +22,7 @@
         document.documentElement.dataset.theme = "dark";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260603-1">
+    <link rel="stylesheet" href="styles.css?v=20260603-2">
   </head>
   <body>
     <div class="app-shell" id="appShell">
@@ -68,16 +68,34 @@
 
       <main class="main-stage">
         <section class="view-panel active" data-view="buyers" aria-label="買家統計">
-          <div class="upload-zone" id="dropZone" tabindex="0">
-            <input id="fileInput" type="file" accept=".xlsx,.xls" hidden>
-            <button class="primary-btn" id="selectFileBtn" type="button">選擇 Excel 檔</button>
-            <p>匯入蝦皮購物紀錄 Excel 後，系統會依完成訂單彙整買家、金額、商品、電話與姓名。</p>
-            <p class="file-meta" id="fileMeta">尚未載入檔案</p>
-          </div>
+          <div class="import-control-panel" id="importControlPanel">
+            <div class="upload-zone" id="dropZone" tabindex="0">
+              <input id="fileInput" type="file" accept=".xlsx,.xls" hidden>
+              <button class="primary-btn" id="selectFileBtn" type="button">選擇 Excel 檔</button>
+              <p class="upload-help">匯入蝦皮購物紀錄 Excel 後，系統會依完成訂單彙整買家、金額、商品、電話與姓名。</p>
+              <p class="file-meta" id="fileMeta">尚未載入檔案</p>
+            </div>
 
-          <div class="notice-panel" id="noticePanel" role="status">
-            <strong>待命</strong>
-            <span>載入檔案後會自動產生買家統計、圖表和匯出資料。</span>
+            <div class="notice-panel" id="noticePanel" role="status">
+              <strong>待命</strong>
+              <span>載入檔案後會自動產生買家統計、圖表和匯出資料。</span>
+            </div>
+
+            <section class="filters" id="yearFilterPanel" aria-label="訂單年份篩選">
+              <div class="filter-header">
+                <div>
+                  <p class="eyebrow">Order Year</p>
+                  <h1>訂單年份</h1>
+                </div>
+                <div class="filter-actions">
+                  <button id="selectAllYearsBtn" type="button" disabled>全選</button>
+                  <button id="clearYearsBtn" type="button" disabled>清除</button>
+                </div>
+              </div>
+              <div class="year-options" id="yearOptions" role="group" aria-label="選擇訂單年份">
+                <p class="empty-note">載入資料後會顯示可篩選年份。</p>
+              </div>
+            </section>
           </div>
 
           <div class="warning-panel hidden" id="warningPanel">
@@ -86,22 +104,6 @@
             </button>
             <ul id="warningList" hidden></ul>
           </div>
-
-          <section class="filters" id="yearFilterPanel" aria-label="訂單年份篩選">
-            <div class="filter-header">
-              <div>
-                <p class="eyebrow">Order Year</p>
-                <h1>訂單年份篩選</h1>
-              </div>
-              <div class="filter-actions">
-                <button id="selectAllYearsBtn" type="button" disabled>全選</button>
-                <button id="clearYearsBtn" type="button" disabled>清除</button>
-              </div>
-            </div>
-            <div class="year-options" id="yearOptions" role="group" aria-label="選擇訂單年份">
-              <p class="empty-note">載入資料後會顯示可篩選年份。</p>
-            </div>
-          </section>
 
           <section class="table-panel" aria-label="買家統計表">
             <div class="table-head">
@@ -267,6 +269,6 @@
 
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
-    <script src="app.js?v=20260603-1"></script>
+    <script src="app.js?v=20260603-2"></script>
   </body>
 </html>

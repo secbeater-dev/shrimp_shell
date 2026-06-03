@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "20260603-1";
+  const APP_VERSION = "20260603-2";
   const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
   const REQUIRED_COLUMNS = [
@@ -900,6 +900,7 @@
       privacyConfirmBtn: document.getElementById("privacyConfirmBtn"),
       updateBanner: document.getElementById("updateBanner"),
       updateReloadBtn: document.getElementById("updateReloadBtn"),
+      importControlPanel: document.getElementById("importControlPanel"),
       fileInput: document.getElementById("fileInput"),
       selectFileBtn: document.getElementById("selectFileBtn"),
       dropZone: document.getElementById("dropZone"),
@@ -1172,13 +1173,16 @@
       )} 列`;
       setNotice(
         "已載入",
-        `完成解析 ${numberFormatter.format(parsed.records.length)} 筆有效列，預設分析 COMPLETED 訂單。`,
+        `${numberFormatter.format(parsed.records.length)} 筆有效列，分析 COMPLETED 訂單。`,
         "success"
       );
       render();
     } catch (error) {
       state.records = [];
       state.warnings = [];
+      state.fileName = "";
+      state.sheetName = "";
+      state.sourceRowCount = 0;
       state.currentSummaries = [];
       state.currentRows = [];
       state.allSummaries = [];
@@ -1244,6 +1248,7 @@
     state.currentSummaries = summaries;
     state.currentRows = buildDetailRows(summaries);
 
+    renderImportControls();
     renderYearFilters();
     renderKpis(summaries);
     renderTable(summaries);
@@ -1252,6 +1257,15 @@
     updateExportState(summaries.length > 0);
     if (state.currentCaseBuyer) renderCurrentDrawer();
     requestAnimationFrame(resizeCharts);
+  }
+
+  function renderImportControls() {
+    const hasFile = Boolean(state.records.length && state.fileName);
+    elements.importControlPanel.classList.toggle("has-file", hasFile);
+    elements.dropZone.classList.toggle("compact", hasFile);
+    elements.yearFilterPanel.classList.toggle("compact", hasFile);
+    elements.selectFileBtn.textContent = hasFile ? "更換 Excel" : "選擇 Excel 檔";
+    elements.dropZone.setAttribute("aria-label", hasFile ? "更換 Excel 檔" : "選擇 Excel 檔");
   }
 
   function renderKpis(summaries) {
