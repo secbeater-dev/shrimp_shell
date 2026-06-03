@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "20260602-4";
+  const APP_VERSION = "20260603-1";
   const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
   const REQUIRED_COLUMNS = [
@@ -12,7 +12,6 @@
     "買家蝦皮帳號",
     "收件人姓名",
     "收件人電話",
-    "購買數量",
     "商品名稱",
   ];
 
@@ -52,6 +51,16 @@
     "付款方式",
     "寄送方式",
   ];
+
+  const COLUMN_ALIASES = {
+    買家蝦皮帳號: ["買家帳號"],
+    商品名稱: ["商品資訊"],
+    收件地址: ["取件地址"],
+    賣家蝦皮帳號: ["賣家帳號"],
+  };
+
+  const DEFAULTABLE_COLUMNS = ["購買數量"];
+  const DEFAULT_QUANTITY_WHEN_MISSING = 1;
 
   const numberFormatter = new Intl.NumberFormat("zh-TW");
   const currencyFormatter = new Intl.NumberFormat("zh-TW", {
@@ -202,6 +211,24 @@
 
   function normalizeHeader(value) {
     return cleanCell(value).replace(/\s+/g, "");
+  }
+
+  function getColumnCandidates(column) {
+    return [column, ...(COLUMN_ALIASES[column] || [])];
+  }
+
+  function resolveColumnIndex(columnIndex, column) {
+    const candidates = getColumnCandidates(column).map(normalizeHeader);
+    for (const candidate of candidates) {
+      if (columnIndex.has(candidate)) return columnIndex.get(candidate);
+    }
+    return undefined;
+  }
+
+  function formatMissingColumn(column) {
+    const candidates = getColumnCandidates(column);
+    if (candidates.length === 1) return column;
+    return `${column}（可接受：${candidates.join("、")}）`;
   }
 
   function normalizeSearch(value) {
@@ -410,16 +437,22 @@
       if (header && !columnIndex.has(header)) columnIndex.set(header, index);
     });
 
-    const missing = REQUIRED_COLUMNS.filter((column) => !columnIndex.has(normalizeHeader(column)));
+    const missing = REQUIRED_COLUMNS.filter((column) => resolveColumnIndex(columnIndex, column) === undefined);
     if (missing.length) {
-      throw new Error(`缺少必要欄位：${missing.join("、")}`);
+      throw new Error(`缺少必要欄位：${missing.map(formatMissingColumn).join("、")}`);
     }
 
-    const allColumns = REQUIRED_COLUMNS.concat(OPTIONAL_COLUMNS);
+    const allColumns = REQUIRED_COLUMNS.concat(DEFAULTABLE_COLUMNS, OPTIONAL_COLUMNS);
+    const resolvedColumnIndex = new Map();
+    allColumns.forEach((column) => {
+      const index = resolveColumnIndex(columnIndex, column);
+      if (index !== undefined) resolvedColumnIndex.set(column, index);
+    });
     const get = (row, column) => {
-      const index = columnIndex.get(normalizeHeader(column));
+      const index = resolvedColumnIndex.get(column);
       return index === undefined ? "" : row[index];
     };
+    const hasQuantityColumn = resolvedColumnIndex.has("購買數量");
 
     const warnings = [];
     const records = [];
@@ -436,7 +469,7 @@
       const amountRaw = get(row, "實際撥款額");
       const amountParsed = parseNumber(amountRaw);
       const quantityRaw = get(row, "購買數量");
-      const quantityParsed = parseQuantity(quantityRaw);
+      const quantityParsed = hasQuantityColumn ? parseQuantity(quantityRaw) : DEFAULT_QUANTITY_WHEN_MISSING;
       const dateText = normalizeDateText(get(row, "訂單成立時間"));
       const record = {
         rowNumber,
@@ -460,7 +493,7 @@
       };
 
       allColumns.forEach((column) => {
-        if (!columnIndex.has(normalizeHeader(column)) && OPTIONAL_COLUMNS.includes(column)) {
+        if (!resolvedColumnIndex.has(column) && OPTIONAL_COLUMNS.includes(column)) {
           record[column] = "";
         }
       });
@@ -474,7 +507,7 @@
       if (status === "COMPLETED" && amountParsed === null) {
         warnings.push(`第 ${rowNumber} 列完成訂單的實際撥款額不是數字，已以 0 計算。`);
       }
-      if (status === "COMPLETED" && quantityParsed === null) {
+      if (status === "COMPLETED" && hasQuantityColumn && quantityParsed === null) {
         warnings.push(`第 ${rowNumber} 列完成訂單的購買數量不是數字，商品數量已以 0 計算。`);
       }
       if (status === "COMPLETED" && buyer) {
