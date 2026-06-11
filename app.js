@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "20260603-2";
+  const APP_VERSION = "20260611-5";
   const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
   const REQUIRED_COLUMNS = [
@@ -71,7 +71,6 @@
     theme: "shellCaseAnalyzerTheme",
     columnOrder: "shellCaseAnalyzerSummaryColumnOrder",
     columnWidths: "shellCaseAnalyzerSummaryColumnWidths",
-    welcome: "shellCaseAnalyzerWelcomeSeen_20260527",
   };
 
   const MIN_SUMMARY_COLUMN_WIDTH = 118;
@@ -467,6 +466,7 @@
       const rawOrderId = cleanCell(get(row, "訂單編號"));
       const orderId = rawOrderId || `缺訂單編號-第${rowNumber}列`;
       const amountRaw = get(row, "實際撥款額");
+      const amountText = cleanCell(amountRaw);
       const amountParsed = parseNumber(amountRaw);
       const quantityRaw = get(row, "購買數量");
       const quantityParsed = hasQuantityColumn ? parseQuantity(quantityRaw) : DEFAULT_QUANTITY_WHEN_MISSING;
@@ -478,6 +478,7 @@
         status,
         dateText,
         dateMs: parseDateMs(dateText),
+        amountText,
         amount: amountParsed === null ? 0 : amountParsed,
         amountWasInvalid: amountParsed === null,
         buyer,
@@ -679,19 +680,25 @@
   function applyDisplayFilters(summaries, filters) {
     const settings = filters || {};
     const search = normalizeSearch(settings.search);
-    const amountMin = parseNumber(settings.amountMin) || 0;
-    const countMin = parseQuantity(settings.countMin) || 0;
+    const amountMin = parseOptionalFilterValue(settings.amountMin, parseNumber);
+    const countMin = parseOptionalFilterValue(settings.countMin, parseQuantity);
     const columnFilters = settings.columnFilters || state.summaryColumnFilters;
     const sort = getSortSettings(settings);
 
     const filtered = summaries.filter((summary) => {
-      if (summary.totalAmount < amountMin) return false;
-      if (summary.orderCount < countMin) return false;
+      if (amountMin !== null && summary.totalAmount < amountMin) return false;
+      if (countMin !== null && summary.orderCount < countMin) return false;
       if (search && !summary.searchBlob.includes(search)) return false;
       return SUMMARY_COLUMNS.every((column) => matchesColumnFilter(summary, column, columnFilters[column.key]));
     });
 
     return filtered.sort((a, b) => compareSummaries(a, b, sort.key, sort.direction));
+  }
+
+  function parseOptionalFilterValue(value, parser) {
+    if (!cleanCell(value)) return null;
+    const parsed = parser(value);
+    return parsed === null ? null : parsed;
   }
 
   function getSortSettings(filters) {
@@ -1073,25 +1080,12 @@
   }
 
   function maybeShowPrivacyModal() {
-    let hasSeen = false;
-    try {
-      hasSeen = localStorage.getItem(STORAGE_KEYS.welcome) === "true";
-    } catch (error) {
-      hasSeen = false;
-    }
-    if (!hasSeen) {
-      elements.privacyModal.hidden = false;
-      elements.privacyConfirmBtn.focus();
-    }
+    elements.privacyModal.hidden = false;
+    elements.privacyConfirmBtn.focus();
   }
 
   function closePrivacyModal() {
     elements.privacyModal.hidden = true;
-    try {
-      localStorage.setItem(STORAGE_KEYS.welcome, "true");
-    } catch (error) {
-      // localStorage can be unavailable in private contexts; closing still works for this session.
-    }
   }
 
   function startUpdateChecks() {
@@ -1173,7 +1167,7 @@
       )} 列`;
       setNotice(
         "已載入",
-        `${numberFormatter.format(parsed.records.length)} 筆有效列，分析 COMPLETED 訂單。`,
+        `${numberFormatter.format(parsed.records.length)} 筆有效列，分析 COMPLETED 訂單；取消/未完成訂單可在買家明細查看。`,
         "success"
       );
       render();
@@ -1919,9 +1913,52 @@
     return map.get(state.currentCaseBuyer) || null;
   }
 
+  function getBuyerSourceRows(records, buyer, yearFilter) {
+    return (records || [])
+      .filter((record) => {
+        if (record.buyer !== buyer) return false;
+        if (!yearFilter) return true;
+        const recordYear = getRecordYear(record);
+        return recordYear !== null && yearFilter.has(recordYear);
+      })
+      .sort(compareRecordsByDate);
+  }
+
+  function getBuyerSourceRowsForMode(buyer, mode) {
+    const yearFilter = mode === "all" ? null : getActiveYearFilter();
+    return getBuyerSourceRows(state.records, buyer, yearFilter);
+  }
+
+  function compareRecordsByDate(a, b) {
+    const aTime = a.dateMs === null ? Number.MAX_SAFE_INTEGER : a.dateMs;
+    const bTime = b.dateMs === null ? Number.MAX_SAFE_INTEGER : b.dateMs;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.rowNumber - b.rowNumber;
+  }
+
+  function getStatusCounts(rows) {
+    const counts = new Map();
+    rows.forEach((row) => {
+      const status = row.status || "未填狀態";
+      counts.set(status, (counts.get(status) || 0) + 1);
+    });
+    return counts;
+  }
+
+  function formatStatusCounts(counts) {
+    if (!counts.size) return "-";
+    return Array.from(counts, ([status, count]) => `${status} ${numberFormatter.format(count)} 筆`).join("\n");
+  }
+
+  function getNonCompletedRows(rows) {
+    return rows.filter((row) => row.status !== "COMPLETED");
+  }
+
   function renderCurrentDrawer() {
     if (!state.currentCaseBuyer) return;
     const summary = getCaseSummaryForMode(state.currentCaseMode);
+    const sourceRows = getBuyerSourceRowsForMode(state.currentCaseBuyer, state.currentCaseMode);
+    const nonCompletedRows = getNonCompletedRows(sourceRows);
     state.currentCaseSummary = summary;
     elements.drawerBuyer.textContent = state.currentCaseBuyer;
     elements.drawerContent.textContent = "";
@@ -1953,6 +1990,7 @@
       note.textContent = "目前年份篩選下沒有這位買家的完成訂單，可切換查看篩選前結果。";
       empty.append(title, note);
       elements.drawerContent.appendChild(empty);
+      elements.drawerContent.appendChild(renderSourceRowsSection(sourceRows, nonCompletedRows));
       return;
     }
 
@@ -1963,6 +2001,8 @@
       ["完成訂單", `${summary.orderCount} 筆`],
       ["電話", summary.phoneText || "-"],
       ["姓名", summary.nameText || "-"],
+      ["原始檔列數", `${numberFormatter.format(sourceRows.length)} 列`],
+      ["非完成訂單", formatStatusCounts(getStatusCounts(nonCompletedRows))],
     ].forEach(([label, value]) => {
       const block = document.createElement("div");
       const small = document.createElement("span");
@@ -2029,7 +2069,74 @@
     orderWrap.appendChild(table);
     orders.append(ordersTitle, orderWrap);
 
-    elements.drawerContent.append(stats, products, orders);
+    elements.drawerContent.append(stats, products, orders, renderSourceRowsSection(sourceRows, nonCompletedRows));
+  }
+
+  function renderSourceRowsSection(sourceRows, nonCompletedRows) {
+    const section = document.createElement("div");
+    section.className = "drawer-section";
+    const title = document.createElement("h3");
+    title.textContent = "原始檔非完成訂單";
+
+    const note = document.createElement("p");
+    note.className = "source-note";
+    note.textContent = `此買家在目前範圍共有 ${numberFormatter.format(
+      sourceRows.length
+    )} 列原始資料；買家統計只計入 COMPLETED 訂單。`;
+    section.append(title, note);
+
+    if (!nonCompletedRows.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-note";
+      empty.textContent = "目前範圍沒有取消或未完成訂單。";
+      section.appendChild(empty);
+      return section;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "mini-table-wrap";
+    const table = document.createElement("table");
+    table.className = "source-rows-table";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    ["原始列號", "狀態", "日期", "訂單編號", "金額", "商品", "收件資訊"].forEach((header) => {
+      const th = document.createElement("th");
+      th.textContent = header;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    const tbody = document.createElement("tbody");
+    nonCompletedRows.forEach((row) => {
+      const tr = document.createElement("tr");
+      [
+        row.rowNumber,
+        row.status || "-",
+        row.dateText || "-",
+        row.orderIdDisplay || row.orderId,
+        formatRecordAmount(row),
+        row.product || "-",
+        formatRecipientInfo(row),
+      ].forEach((value, index) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        if (index >= 5) td.className = "multiline";
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.append(thead, tbody);
+    wrap.appendChild(table);
+    section.appendChild(wrap);
+    return section;
+  }
+
+  function formatRecordAmount(record) {
+    if (record.amountWasInvalid) return record.amountText || "-";
+    return record.amountText || currencyFormatter.format(Math.round(record.amount));
+  }
+
+  function formatRecipientInfo(row) {
+    return [row.name, row.phone, row.address].map(cleanCell).filter(Boolean).join("\n") || "-";
   }
 
   function closeDrawer() {
@@ -2220,6 +2327,8 @@
     parseRows,
     aggregateRecords,
     applyDisplayFilters,
+    getBuyerSourceRows,
+    getNonCompletedRows,
     buildSummaryRows,
     buildDetailRows,
   };

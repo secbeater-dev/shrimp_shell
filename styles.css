@@ -1169,12 +1169,22 @@ body.is-resizing-column {
   line-height: 1.68;
 }
 
+.source-note {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .mini-table-wrap {
   overflow: auto;
 }
 
 .mini-table-wrap table {
   min-width: 1120px;
+}
+
+.mini-table-wrap .source-rows-table {
+  min-width: 1280px;
 }
 
 .detail-drawer th,
@@ -1188,9 +1198,10 @@ body.is-resizing-column {
   z-index: 60;
   display: grid;
   place-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.58);
-  backdrop-filter: blur(6px);
+  overflow: auto;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
 }
 
 .modal-backdrop[hidden] {
@@ -1241,44 +1252,179 @@ body.is-resizing-column {
 }
 
 .privacy-modal {
-  width: min(620px, 100%);
-  max-height: min(760px, calc(100vh - 40px));
+  width: min(980px, 100%);
+  max-height: min(820px, calc(100vh - 44px));
   overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 14px;
   padding: 24px;
   background:
-    linear-gradient(180deg, rgba(239, 35, 35, 0.13), rgba(255, 255, 255, 0.035)),
-    var(--panel);
-  box-shadow: var(--shadow);
+    linear-gradient(105deg, rgba(10, 12, 22, 0.9), rgba(20, 7, 18, 0.76)),
+    radial-gradient(circle at 84% 18%, rgba(239, 35, 35, 0.3), transparent 18rem),
+    rgba(8, 8, 10, 0.96);
+  box-shadow: 0 28px 88px rgba(0, 0, 0, 0.68);
+}
+
+.welcome-modal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 330px);
+  gap: 20px;
+  align-items: stretch;
+  position: relative;
+}
+
+.welcome-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 24%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 11px);
+  mix-blend-mode: screen;
+  opacity: 0.35;
 }
 
 .privacy-modal h2 {
-  margin: 0 0 1rem;
-  font-size: 1.35rem;
+  margin: 0;
+  color: #fff;
+  font-size: 1.9rem;
+  line-height: 1.18;
 }
 
 .welcome-copy {
   display: grid;
-  gap: 0.95rem;
-  margin-bottom: 1.35rem;
+  align-content: start;
+  gap: 0.9rem;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .welcome-copy h3 {
-  margin: 0.35rem 0 0;
-  color: var(--paper);
-  font-size: 1.08rem;
+  margin: 0.3rem 0 0;
+  color: #fff;
+  font-size: 1.15rem;
 }
 
 .welcome-copy p {
   margin: 0;
-  color: var(--paper-2);
-  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.65;
 }
 
 .welcome-copy a {
-  color: var(--paper);
+  color: #fff;
   font-weight: 850;
+}
+
+.welcome-updates {
+  display: grid;
+  gap: 0.38rem;
+  margin: 0;
+  padding-left: 1.15rem;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.55;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 0.2rem;
+}
+
+.line-community-btn,
+.welcome-actions button {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0.68rem 1rem;
+  font-weight: 850;
+}
+
+.line-community-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.line-community-btn:hover,
+.line-community-btn:focus-visible {
+  border-color: rgba(6, 199, 85, 0.82);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.18);
+}
+
+.welcome-media {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.line-qr-card {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 11px;
+  color: #121212;
+  text-align: center;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.line-qr-card img {
+  width: min(208px, 100%);
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.promo-figure {
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: #05050a;
+}
+
+.promo-figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  object-fit: cover;
+  object-position: 50% 28%;
+}
+
+.promo-figure figcaption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0.72rem 0.82rem;
+  color: #fff;
+  font-size: 1.18rem;
+  font-weight: 950;
+  line-height: 1.35;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.92);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.88) 18%),
+    linear-gradient(90deg, rgba(239, 35, 35, 0.9), rgba(0, 0, 0, 0.76), rgba(6, 199, 85, 0.7));
 }
 
 @media (max-width: 980px) {
@@ -1314,6 +1460,30 @@ body.is-resizing-column {
 }
 
 @media (max-width: 920px) {
+  .modal-backdrop {
+    align-items: start;
+    padding: 16px;
+  }
+
+  .privacy-modal {
+    width: min(680px, 100%);
+    max-height: calc(100vh - 32px);
+  }
+
+  .welcome-modal {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-media {
+    grid-template-columns: minmax(164px, 220px) minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .promo-figure,
+  .promo-figure img {
+    min-height: 250px;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
     padding: 14px;
@@ -1357,6 +1527,50 @@ body.is-resizing-column {
 }
 
 @media (max-width: 620px) {
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .privacy-modal {
+    max-height: calc(100vh - 24px);
+    padding: 16px;
+  }
+
+  .privacy-modal h2 {
+    font-size: 1.55rem;
+  }
+
+  .welcome-modal {
+    gap: 14px;
+  }
+
+  .welcome-actions {
+    flex-direction: column;
+  }
+
+  .line-community-btn,
+  .welcome-actions button {
+    width: 100%;
+  }
+
+  .welcome-media {
+    grid-template-columns: 1fr;
+  }
+
+  .line-qr-card {
+    justify-self: center;
+    width: min(240px, 100%);
+  }
+
+  .promo-figure,
+  .promo-figure img {
+    min-height: 320px;
+  }
+
+  .promo-figure figcaption {
+    font-size: 1.02rem;
+  }
+
   .app-shell {
     padding: 10px;
   }

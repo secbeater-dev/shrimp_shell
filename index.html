@@ -22,7 +22,7 @@
         document.documentElement.dataset.theme = "dark";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260603-2">
+    <link rel="stylesheet" href="styles.css?v=20260611-5">
   </head>
   <body>
     <div class="app-shell" id="appShell">
@@ -235,27 +235,51 @@
     </aside>
 
     <div class="modal-backdrop" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle" hidden>
-      <div class="privacy-modal">
-        <p class="eyebrow">使用提醒</p>
-        <h2 id="privacyTitle">資料均在本地運行，請安心使用。</h2>
-        <div class="welcome-copy">
+      <div class="privacy-modal welcome-modal">
+        <section class="welcome-copy">
+          <p class="eyebrow">使用提醒</p>
+          <h2 id="privacyTitle">資料均在本地運行，請安心使用。</h2>
           <p>
-            有任何需求可以私訊
-            <a href="https://t.me/secbeater" target="_blank" rel="noopener noreferrer">SecBeater</a>。
+            有任何需求可以加入
+            <a
+              href="https://line.me/ti/g2/PHIKqpV1T8I0XssHhZrDpF5RGpCVklnlRnoouw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default"
+              target="_blank"
+              rel="noopener noreferrer"
+            >LINE 社群</a>
+            反饋。
           </p>
-          <p>
-            歡迎加入
-            <a href="https://t.me/tgsecbeater" target="_blank" rel="noopener noreferrer">Telegram 群組</a>，
-            不定時送福利，歡迎反饋意見。
-          </p>
-          <h3>今日重點（2026-05-27）</h3>
-          <p>
-            本工具可匯入蝦殼 Excel，在本機彙整買家統計、篩選排序欄位、查看 Case Detail、
-            找出共用電話/姓名線索，並匯出統計與明細。
-          </p>
-          <p>備註：若異常請使用強制重載最新版（等同 Ctrl+F5）。</p>
-        </div>
-        <button class="primary-btn" id="privacyConfirmBtn" type="button">我知道了</button>
+          <h3>今日修正事項（2026-06-11）</h3>
+          <ul class="welcome-updates">
+            <li>匯入負額買家不再被隱藏。</li>
+            <li>Case Detail 會顯示同買家的取消/未完成訂單。</li>
+            <li>已驗證匯入、篩選、明細、線索與匯出功能正常。</li>
+          </ul>
+          <p>備註：若畫面仍是舊版，請使用強制重載最新版（等同 Ctrl+F5）。</p>
+          <div class="welcome-actions">
+            <a
+              class="line-community-btn"
+              href="https://line.me/ti/g2/PHIKqpV1T8I0XssHhZrDpF5RGpCVklnlRnoouw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default"
+              target="_blank"
+              rel="noopener noreferrer"
+            >加入 LINE 群組</a>
+            <button class="primary-btn" id="privacyConfirmBtn" type="button">我知道了</button>
+          </div>
+        </section>
+        <aside class="welcome-media" aria-label="LINE 社群與 Gemini Pro 優惠">
+          <a
+            class="line-qr-card"
+            href="https://line.me/ti/g2/PHIKqpV1T8I0XssHhZrDpF5RGpCVklnlRnoouw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img src="assets/line-community-qr.jpg" alt="LINE 社群 QR Code">
+            <span>掃描或點擊加入 LINE 社群</span>
+          </a>
+          <figure class="promo-figure">
+            <img src="assets/police-shrimp-gemini.png" alt="女警抱蝦子的 Gemini Pro 會員優惠視覺">
+            <figcaption>一起跟上 AI 時代，讓 Gemini Pro 成為你的效率夥伴。一年會員限量優惠 NT$1,500（原價 NT$8,280），真誠推薦給想提升自己的你。</figcaption>
+          </figure>
+        </aside>
       </div>
     </div>
 
@@ -269,6 +293,6 @@
 
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
-    <script src="app.js?v=20260603-2"></script>
+    <script src="app.js?v=20260611-5"></script>
   </body>
 </html>
